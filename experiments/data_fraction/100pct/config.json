@@ -1,0 +1,9 @@
+{
+  "model_name": "Salesforce/codet5-base",
+  "data_file": "data/check_for_2015.jsonl",
+  "data_fraction": 1.0,
+  "batch_size": 4,
+  "epochs": 4,
+  "fp16": true,
+  "output_dir": "/vol/home/s3905020/Desktop/thesis/experiments/data_fraction/100pct"
+}
