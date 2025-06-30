@@ -1,0 +1,7 @@
+transformers==4.41.2
+datasets==2.19.1
+tokenizers>=0.18.0
+accelerate==0.30.1
+peft==0.10.0
+torch==2.3.0
+pandas==2.2.2
