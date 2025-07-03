@@ -13,4 +13,4 @@ instruction = (
     "Classify the Go code as Vulnerable or Secure, provide the CWE ID if applicable, "
     "and return the response in the following format:\n"
     f"{ResponseFormat.schema_json(indent=2)}"
-)
+).join('')

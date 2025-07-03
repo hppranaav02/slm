@@ -94,6 +94,10 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=4)
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--output_dir", type=str, required=True)
+    # reasoning
+    parser.add_argument("--reasoning", action="store_true", help="Include reasoning in the output format")
+    # token length
+    parser.add_argument("--max_length", type=int, default=512, help="Maximum length for input tokens")
     args = parser.parse_args()
     if not os.path.isfile(args.data_file):
         print("invalid data file path")

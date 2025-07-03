@@ -6,6 +6,7 @@ from transformers import (
     Seq2SeqTrainer, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments
 )
 from sklearn.metrics import classification_report, accuracy_score
+from data_model import ResponseFormat, instruction
 
 # --- Config ---
 MODEL_DIR = "../models/codet5p-go-cwe/checkpoint-4832"
@@ -21,15 +22,35 @@ dataset = load_dataset("json", data_files=DATA_FILE, split="train")
 dataset = dataset.train_test_split(test_size=0.2)
 test_data = dataset["test"]
 
-# --- Tokenize test set ---
+# --- Preprocess function ---
 def preprocess(examples):
-    inputs = [f"{i} {c}" for i, c in zip(examples["instruction"], examples["input"])]
-    model_inputs = tokenizer(inputs, truncation=True, padding="max_length", max_length=512)
+    inputs = [f"instruction:\n{i}\ninput:{c}" for i, c in zip([instruction]*len(examples["input"]), examples["input"])]
+    model_inputs = tokenizer(inputs, truncation=True, max_length=512, padding="max_length")
+    print("Inputs tokenized successfully.")
 
+    # Pad the tokens to maximum length
+
+    #ask what this does
     with tokenizer.as_target_tokenizer():
-        labels = tokenizer(examples["output"], truncation=True, padding="max_length", max_length=64)
+        outputs= []
+        for output in zip(examples["output"]):
+            print(f"Processing output: {output[0]}")
+            vul, vul_type = output[0].split("=") if output[0].lower() != 'secure' else (output[0], None)
+            vul = vul.strip()
+            vul_type = vul_type.strip() if vul_type else None
+            response = ResponseFormat(
+                type="json",
+                vulnerability=(vul.lower() == "vulnerable"),
+                vulnerability_type=vul_type,
+            )
+            # examples["output"] = f"```json\n{response.json()}\n```"
+            outputs.append((f"```json\n{response.json()}\n```"))
+        examples["output"] = outputs
+
+        labels = tokenizer(examples["output"], truncation=True, max_length=128, padding="max_length") # try 128,
 
     model_inputs["labels"] = labels["input_ids"]
+    print("Labels tokenized successfully.")
     return model_inputs
 
 tokenized_test = test_data.map(preprocess, batched=True)
@@ -46,13 +67,14 @@ training_args = Seq2SeqTrainingArguments(
 # --- Inference ---
 trainer = Seq2SeqTrainer(model=model, tokenizer=tokenizer,args=training_args, data_collator=collator)
 raw_preds = trainer.predict(tokenized_test)
-
 # --- Decode predictions ---
 pred_tokens = tokenizer.batch_decode(raw_preds.predictions, skip_special_tokens=True)
-true_labels = [x["output"].strip() for x in test_data]
-pred_labels = [x.strip() for x in pred_tokens]
+true_labels = [ResponseFormat.parse_raw(x["output"]).vulnerability for x in test_data]
+pred_labels = [
+    ResponseFormat.parse_raw(x).vulnerability if x.startswith("```json") else None
+    for x in pred_tokens
+]
 
-# change the format of predictions to match the expected output
 # --- Metrics ---
 accuracy = accuracy_score(true_labels, pred_labels)
 report = classification_report(true_labels, pred_labels, output_dict=True, zero_division=0)

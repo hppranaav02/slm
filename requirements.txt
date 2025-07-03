@@ -5,3 +5,4 @@ accelerate
 peft
 torch
 pandas
+pydantic
