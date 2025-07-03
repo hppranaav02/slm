@@ -52,6 +52,7 @@ pred_tokens = tokenizer.batch_decode(raw_preds.predictions, skip_special_tokens=
 true_labels = [x["output"].strip() for x in test_data]
 pred_labels = [x.strip() for x in pred_tokens]
 
+# change the format of predictions to match the expected output
 # --- Metrics ---
 accuracy = accuracy_score(true_labels, pred_labels)
 report = classification_report(true_labels, pred_labels, output_dict=True, zero_division=0)

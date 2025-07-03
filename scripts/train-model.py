@@ -4,6 +4,7 @@ from transformers import (
     AutoTokenizer, AutoModelForSeq2SeqLM,
     Seq2SeqTrainingArguments, Seq2SeqTrainer
 )
+from data_model import ResponseFormat
 
 # --- Configuration ---
 MODEL_NAME = "Salesforce/codet5p-220m"
@@ -22,7 +23,20 @@ def preprocess(examples):
     inputs = [f"{i} {c}" for i, c in zip(examples["instruction"], examples["input"])]
     model_inputs = tokenizer(inputs, truncation=True, max_length=512, padding="max_length")
 
+    # Pad the tokens to maximum length
+
+    #ask what this does
     with tokenizer.as_target_tokenizer():
+        vul, vul_type = examples["output"].split("=")
+        vul = vul.strip()
+        vul_type = vul_type.strip() if vul_type else None
+        response = ResponseFormat(
+            type="json",
+            vulnerability=(vul.lower() == "vulnerable"),
+            vulnerability_type=vul_type,
+        )
+        examples["output"] = f"```json\n{response.json()}\n```"
+
         labels = tokenizer(examples["output"], truncation=True, max_length=64, padding="max_length")
 
     model_inputs["labels"] = labels["input_ids"]
